@@ -11,22 +11,22 @@ import (
 // 简单模拟消息队列
 
 type Broker struct {
-	event     chan interface{}
-	funcs     []func(interface{})
-	muFuncs   sync.RWMutex
-	Name      string
-	wait      *sync.WaitGroup
-	onceStart sync.Once
-	onceStop  sync.Once
+	event      chan interface{}
+	handlers   []func(interface{})
+	handlersMu sync.RWMutex
+	Name       string
+	wait       *sync.WaitGroup
+	onceStart  sync.Once
+	onceStop   sync.Once
 }
 
 // NewStartedBroker 创建broker,并开始
 func NewStartedBroker(name string, chanBuf int) *Broker {
 	b := &Broker{
-		event: make(chan interface{}, chanBuf),
-		funcs: make([]func(interface{}), 0),
-		Name:  name,
-		wait:  &sync.WaitGroup{},
+		event:    make(chan interface{}, chanBuf),
+		handlers: make([]func(interface{}), 0),
+		Name:     name,
+		wait:     &sync.WaitGroup{},
 	}
 	b.Start()
 	return b
@@ -46,9 +46,9 @@ func (b *Broker) Send(ctx context.Context, o interface{}) (err error) {
 
 // Register 注册事件
 func (b *Broker) Register(ctx context.Context, f func(interface{})) (err error) {
-	b.muFuncs.Lock()
-	defer b.muFuncs.Unlock()
-	b.funcs = append(b.funcs, func(o interface{}) {
+	b.handlersMu.Lock()
+	defer b.handlersMu.Unlock()
+	b.handlers = append(b.handlers, func(o interface{}) {
 		defer func() {
 			if err := recover(); err != nil {
 				err = fmt.Errorf("panic on broker handler msg name:%v err:%v msg:%v", b.Name, err, o)
@@ -61,9 +61,9 @@ func (b *Broker) Register(ctx context.Context, f func(interface{})) (err error) 
 }
 
 func (b *Broker) Clear() {
-	b.muFuncs.Lock()
-	defer b.muFuncs.Unlock()
-	b.funcs = b.funcs[0:0]
+	b.handlersMu.Lock()
+	defer b.handlersMu.Unlock()
+	b.handlers = b.handlers[0:0]
 }
 
 // Stop 调用stop之前确保写入方都已经退出了,不然要panic
@@ -82,11 +82,11 @@ func (b *Broker) Start() {
 				event, ok := <-b.event
 				if ok {
 					// 事件分发
-					b.muFuncs.RLock()
-					for _, v := range b.funcs {
+					b.handlersMu.RLock()
+					for _, v := range b.handlers {
 						v(event) // 有recover
 					}
-					b.muFuncs.RUnlock()
+					b.handlersMu.RUnlock()
 				} else {
 					// 通道已经关闭
 					b.wait.Done()
