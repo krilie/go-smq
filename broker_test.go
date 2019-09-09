@@ -3,6 +3,7 @@ package go_smq
 import (
 	"context"
 	"fmt"
+	"sync"
 	"testing"
 	"time"
 )
@@ -28,4 +29,10 @@ func TestNewStartedBroker(t *testing.T) {
 	if err != nil {
 		t.Log(err)
 	}
+}
+
+func TestNewSmq(t *testing.T) {
+	mu := sync.RWMutex{}
+	mu.RLock()
+	mu.RUnlock()
 }

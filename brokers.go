@@ -19,10 +19,11 @@ func NewSmq() *Smq {
 
 func (a *Smq) Get(name string) *Broker {
 	a.Mu.RLock()
-	defer a.Mu.RUnlock()
 	if _, ok := a.Brokers[name]; ok {
+		defer a.Mu.RUnlock()
 		return a.Brokers[name]
 	} else {
+		a.Mu.RUnlock()
 		a.Mu.Lock()
 		defer a.Mu.Unlock()
 		a.Brokers[name] = NewStartedBroker(name, 1)
