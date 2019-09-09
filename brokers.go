@@ -2,6 +2,12 @@ package go_smq
 
 import "sync"
 
+var GSmq *Smq
+
+func init() {
+	GSmq = NewSmq()
+}
+
 type Smq struct {
 	Brokers map[string]*Broker
 	Mu      sync.RWMutex
@@ -21,5 +27,13 @@ func (a *Smq) Get(name string) *Broker {
 		defer a.Mu.Unlock()
 		a.Brokers[name] = NewStartedBroker(name, 1)
 		return a.Brokers[name]
+	}
+}
+
+func (a *Smq) Close() {
+	a.Mu.RLock()
+	a.Mu.RUnlock()
+	for _, v := range a.Brokers {
+		v.Stop()
 	}
 }
