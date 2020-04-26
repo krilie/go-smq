@@ -49,6 +49,7 @@ func (b *Broker) Send(ctx context.Context, msg Message) (err error) {
 }
 
 // Register 注册事件
+// f => func(o ImplMessage)
 func (b *Broker) Register(ctx context.Context, f interface{}) (err error) {
 	f2 := reflect.TypeOf(f)
 	if f2.Kind() != reflect.Func {
@@ -74,8 +75,8 @@ func (b *Broker) Register(ctx context.Context, f interface{}) (err error) {
 				log.Println(err)
 			}
 		}()
-		f2Value := reflect.ValueOf(f2.In(0))
-		f(o)
+		f2Value := reflect.ValueOf(f)
+		f2Value.Call([]reflect.Value{reflect.ValueOf(o)})
 	})
 	return nil
 }
