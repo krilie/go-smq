@@ -1,6 +1,9 @@
 package go_smq
 
-import "sync"
+import (
+	"reflect"
+	"sync"
+)
 
 var GSmq *Smq
 
@@ -9,25 +12,25 @@ func init() {
 }
 
 type Smq struct {
-	Brokers map[string]*Broker
+	Brokers map[reflect.Type]*Broker
 	Mu      sync.RWMutex
 }
 
 func NewSmq() *Smq {
-	return &Smq{Brokers: make(map[string]*Broker)}
+	return &Smq{Brokers: make(map[reflect.Type]*Broker)}
 }
 
-func (a *Smq) Get(name string) *Broker {
+func (a *Smq) Get(msgType reflect.Type) *Broker {
 	a.Mu.RLock()
-	if _, ok := a.Brokers[name]; ok {
+	if _, ok := a.Brokers[msgType]; ok {
 		defer a.Mu.RUnlock()
-		return a.Brokers[name]
+		return a.Brokers[msgType]
 	} else {
 		a.Mu.RUnlock()
 		a.Mu.Lock()
 		defer a.Mu.Unlock()
-		a.Brokers[name] = NewStartedBroker(name, 1)
-		return a.Brokers[name]
+		a.Brokers[msgType] = NewStartedBroker(msgType, 1)
+		return a.Brokers[msgType]
 	}
 }
 
