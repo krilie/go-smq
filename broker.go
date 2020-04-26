@@ -51,21 +51,6 @@ func (b *Broker) Send(ctx context.Context, msg Message) (err error) {
 // Register 注册事件
 // f => func(o ImplMessage)
 func (b *Broker) Register(ctx context.Context, f interface{}) (err error) {
-	f2 := reflect.TypeOf(f)
-	if f2.Kind() != reflect.Func {
-		panic("message func not a function")
-	}
-	if f2.NumOut() != 0 {
-		panic("message func with not void out param")
-	}
-	if f2.NumIn() != 1 {
-		panic("message func with not one in param")
-	}
-	inParam := f2.In(0)
-	if !inParam.Implements(reflect.TypeOf((*Message)(nil)).Elem()) {
-		panic("message func with param is not message")
-	}
-
 	b.handlersMu.Lock()
 	defer b.handlersMu.Unlock()
 	b.handlers = append(b.handlers, func(o Message) {
